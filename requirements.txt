@@ -6,6 +6,7 @@ streamlit-folium>=0.21
 folium>=0.16
 branca>=0.7
 Authlib>=1.3.2
+httpx>=0.27
 
 # Datos y análisis
 pandas>=2.0,<3

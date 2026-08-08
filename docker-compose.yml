@@ -1,0 +1,40 @@
+# AgroLens en un servidor propio.
+#
+#   1. Copiar .env.example a .env y completarlo.
+#   2. docker compose up -d --build
+#   3. La app queda en http://<tu-servidor>:8501
+#
+# El volumen `agrolens-data` guarda los lotes, el caché y las exportaciones:
+# sin él, cada redeploy borra todo lo cargado.
+
+services:
+  agrolens:
+    build: .
+    image: agrolens:latest
+    container_name: agrolens
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      EE_PROJECT: ${EE_PROJECT}
+      EE_SERVICE_ACCOUNT_JSON: ${EE_SERVICE_ACCOUNT_JSON}
+      AGROLENS_PASSWORD: ${AGROLENS_PASSWORD:-}
+      AGROLENS_DATA_DIR: /data
+      TZ: America/Argentina/Buenos_Aires
+    volumes:
+      - agrolens-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          # Descargar un ráster y agrupar sus píxeles es lo que más memoria usa.
+          # Con menos de 1 GB, un lote grande hace que el contenedor muera.
+          memory: 2G
+
+volumes:
+  agrolens-data:

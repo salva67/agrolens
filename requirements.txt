@@ -1,0 +1,33 @@
+# AgroLens — dependencias
+# Instalación:  pip install -r requirements.txt
+
+# Interfaz
+streamlit>=1.40
+streamlit-folium>=0.21
+folium>=0.16
+branca>=0.7
+Authlib>=1.3.2         # requerido por st.login() para el ingreso con Google
+
+# Datos y análisis
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
+requests>=2.31
+
+# Geoespacial
+geopandas>=0.14
+shapely>=2.0
+pyproj>=3.5
+rasterio>=1.3
+fiona>=1.9
+
+# Satélite
+earthengine-api>=0.1.390
+
+# Gráficos y salidas
+plotly>=5.20            # gráficos interactivos en pantalla
+matplotlib>=3.7         # gráficos del PDF (no depende de binarios externos)
+reportlab>=4.0          # informe PDF
+xlsxwriter>=3.1         # libro de Excel
+openpyxl>=3.1

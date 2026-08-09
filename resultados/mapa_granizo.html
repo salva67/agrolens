@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_bb2288d8f486751a5628fc92a69fc457 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_bb2288d8f486751a5628fc92a69fc457" ></div>
+        
+    
+<div style="position: fixed; bottom: 28px; left: 18px; z-index: 9999;
+            background: rgba(255,255,255,.93); padding: 10px 14px;
+            border: 1px solid #999; border-radius: 6px; font: 12px/1.5 sans-serif;
+            box-shadow: 0 1px 4px rgba(0,0,0,.3);">
+  <div style="font-weight:700; margin-bottom:6px;">Exposicion a granizo</div>
+  <div><span style="display:inline-block;width:14px;height:14px;background:#2c7bb6;border:1px solid #666;vertical-align:-2px;margin-right:6px;"></span>Muy bajo</div><div><span style="display:inline-block;width:14px;height:14px;background:#abd9e9;border:1px solid #666;vertical-align:-2px;margin-right:6px;"></span>Bajo</div><div><span style="display:inline-block;width:14px;height:14px;background:#ffffbf;border:1px solid #666;vertical-align:-2px;margin-right:6px;"></span>Moderado</div><div><span style="display:inline-block;width:14px;height:14px;background:#fdae61;border:1px solid #666;vertical-align:-2px;margin-right:6px;"></span>Alto</div><div><span style="display:inline-block;width:14px;height:14px;background:#d7191c;border:1px solid #666;vertical-align:-2px;margin-right:6px;"></span>Muy alto</div>
+  <div style="margin-top:8px; color:#555; max-width:230px; font-size:11px;">
+    GOES-19 &middot; 2026-07-31 19:00 a 2026-07-31 22:00 (local)<br>Radio de analisis: 20.0 km
+  </div>
+</div>
+</body>
+<script>
+    
+    
+            var map_bb2288d8f486751a5628fc92a69fc457 = L.map(
+                "map_bb2288d8f486751a5628fc92a69fc457",
+                {
+                    center: [-34.6926, -61.601957],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 8,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_cfb7b7a8d806ffc70f62424c734168c4 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_cfb7b7a8d806ffc70f62424c734168c4.addTo(map_bb2288d8f486751a5628fc92a69fc457);
+        
+    
+            var tile_layer_dc39dbdd7c9b6f4378b0cd13d8cf1829 = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Esri",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_dc39dbdd7c9b6f4378b0cd13d8cf1829.addTo(map_bb2288d8f486751a5628fc92a69fc457);
+        
+    
+            var tile_layer_8d1be81102b1905d212d679caac47701 = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/ee-salvalrc/maps/6fb0964e8df307e198c500e0cc9b5c4e-7a132e57c62d752a59919831f32700a2/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Google Earth Engine / NOAA GOES",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 0.65,
+}
+
+            );
+        
+    
+            tile_layer_8d1be81102b1905d212d679caac47701.addTo(map_bb2288d8f486751a5628fc92a69fc457);
+        
+    
+            var tile_layer_d18fc3ad8f53074a4c0a45d699afb3ac = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/ee-salvalrc/maps/2faf811ab1565d28bbbf6300b9a7d813-eb5f28b225ff8125fb60eb2258d79d02/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Google Earth Engine / NOAA GOES",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 0.65,
+}
+
+            );
+        
+    
+            var tile_layer_cd8c1105f796a0949d39317094a37fd9 = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/ee-salvalrc/maps/fd51f201877b33e82a223cdc4a17693c-711fc070e74a3baad4fcf6757bacf64e/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Google Earth Engine / NOAA GOES",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 0.65,
+}
+
+            );
+        
+    
+            var tile_layer_3a82f38f68724e02036f574121fa5e25 = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/ee-salvalrc/maps/f4ac374ec2999e6d1551c0cfc4329ebe-ed0da1f4f9ddcb35645da2dbf920470a/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Google Earth Engine / NOAA GOES",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 0.65,
+}
+
+            );
+        
+    
+            var feature_group_46864774c96cccdb53b24acc02e6745d = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_5b6752a32922873fbb2221eeb40b2175 = L.circle(
+                [-34.6926, -61.601957],
+                {"bubblingMouseEvents": true, "color": "#222", "dashArray": "4,4", "dashOffset": null, "fill": false, "fillColor": "#222", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 20000.0, "stroke": true, "weight": 1}
+            ).addTo(feature_group_46864774c96cccdb53b24acc02e6745d);
+        
+    
+            var circle_marker_9ec990cd4e87e11240baeab0752868b5 = L.circleMarker(
+                [-34.6926, -61.601957],
+                {"bubblingMouseEvents": true, "color": "#222", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#fdae61", "fillOpacity": 1.0, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.5}
+            ).addTo(feature_group_46864774c96cccdb53b24acc02e6745d);
+        
+    
+        var popup_8d49082b91e50190bb21c05caa73ff3e = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_ba9084f9796369a7a3d2d395beebdaac = $(`<div id="html_ba9084f9796369a7a3d2d395beebdaac" style="width: 100.0%; height: 100.0%;"><b>punto</b><br>Exposicion: <b>64.1 / 100</b> (Alto)<br>Tope minimo: -64.9 C<br>Area &lt;215 K: 0.07<br>Overshooting (WV-IR): -0.36<br>Minutos &lt;225 K: 50.0<br>Pico: 2026-07-31T21:00:21.400000-03:00<br><i>Paralaje corregido: 12.1 km</i></div>`)[0];
+                popup_8d49082b91e50190bb21c05caa73ff3e.setContent(html_ba9084f9796369a7a3d2d395beebdaac);
+            
+        
+
+        circle_marker_9ec990cd4e87e11240baeab0752868b5.bindPopup(popup_8d49082b91e50190bb21c05caa73ff3e)
+        ;
+
+        
+    
+    
+            circle_marker_9ec990cd4e87e11240baeab0752868b5.bindTooltip(
+                `<div>
+                     punto: 64.1
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_46864774c96cccdb53b24acc02e6745d.addTo(map_bb2288d8f486751a5628fc92a69fc457);
+        
+    
+            var layer_control_7fac256ad20a63c0506d8e453191fe51_layers = {
+                base_layers : {
+                    "OpenStreetMap" : tile_layer_cfb7b7a8d806ffc70f62424c734168c4,
+                    "Satelital" : tile_layer_dc39dbdd7c9b6f4378b0cd13d8cf1829,
+                },
+                overlays :  {
+                    "Exposicion del lote (disco de 20 km)" : tile_layer_8d1be81102b1905d212d679caac47701,
+                    "Exposicion del lote (continuo 0-100)" : tile_layer_d18fc3ad8f53074a4c0a45d699afb3ac,
+                    "Estructura de la tormenta (pixel crudo)" : tile_layer_cd8c1105f796a0949d39317094a37fd9,
+                    "Temperatura minima de tope (K)" : tile_layer_3a82f38f68724e02036f574121fa5e25,
+                    "Lotes" : feature_group_46864774c96cccdb53b24acc02e6745d,
+                },
+            };
+            let layer_control_7fac256ad20a63c0506d8e453191fe51 = L.control.layers(
+                layer_control_7fac256ad20a63c0506d8e453191fe51_layers.base_layers,
+                layer_control_7fac256ad20a63c0506d8e453191fe51_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_bb2288d8f486751a5628fc92a69fc457);
+
+        
+</script>
+</html>

@@ -17,6 +17,7 @@ streamlit run app.py
 |---|---|
 | **Vegetación** | 12 índices espectrales sobre Sentinel-2 a 10 m, curva reconstruida y suavizada, fenología automática (inicio, pico y fin de temporada), uniformidad interna, mapa y comparación de dos fechas con cortina deslizante. |
 | **Clima y agua** | Serie ERA5 diaria + pronóstico a 16 días, normales 1991–2020 del mismo punto, balance hídrico FAO-56 con Kc derivado del NDVI observado, grados-día con etapas fenológicas, rachas secas, heladas, golpes de calor y ventanas de piso para entrar con la máquina. |
+| **Tormentas** | Exposición a granizo y viento del período, y **detección de daño**: caídas bruscas del índice que coinciden con una tormenta, con un nivel de confianza explícito. Opcionalmente, puntaje de exposición a granizo sobre imágenes GOES. |
 | **Ambientes** | Zonificación por k-medias con etiquetas estables, mapa de estabilidad entre campañas (lo estructural contra lo coyuntural) y prescripción de dosis variable que respeta el promedio del lote. |
 | **Historia** | La campaña actual contra las anteriores del mismo lote, alineadas por días desde la siembra, con banda de percentiles y anomalía diaria. |
 | **Salidas** | Informe PDF, libro de Excel con todas las tablas, GeoJSON, shapefile, GeoTIFF y paquete de prescripción listo para el monitor. |
@@ -43,7 +44,7 @@ hacer al respecto.
 | Salida | PDF | PDF + Excel + GeoJSON + SHP + GeoTIFF + paquete VRA |
 | Sin conexión | Falla | Modo demostración con datos sintéticos, siempre señalizado |
 | Velocidad | Recalcula todo | Caché en disco persistente entre sesiones |
-| Pruebas | — | 41 pruebas automáticas sin red |
+| Pruebas | — | 51 pruebas automáticas sin red |
 
 ---
 
@@ -377,6 +378,26 @@ manual: el Kc se deriva del NDVI observado en vez de una curva teórica — así
 balance "ve" una implantación fallida — y el Ks diario se pondera por la
 ventana crítica de cada cultivo.
 
+**Tormentas.** La exposición sale del registro meteorológico: ráfaga máxima
+diaria y código WMO, que distingue tormenta (95) de tormenta con granizo
+(96 y 99). El daño, en cambio, sale del cruce: una caída brusca del índice
+entre dos imágenes cercanas con una tormenta en el medio. El granizo y el
+viento destruyen tejido verde de un día para el otro; la seca y las
+enfermedades bajan el índice de a poco, así que la firma temporal los separa.
+Se descartan las caídas de fin de ciclo, donde perder verde es lo esperable.
+
+Cada hallazgo trae una confianza — alta, media o baja — que combina el tamaño
+de la caída, cuántos días pasaron entre las dos imágenes y la severidad del
+evento. Con dos semanas entre pasadas, cualquier otra cosa pudo haber pasado
+en el medio, y el informe lo dice en vez de afirmar de más.
+
+Para dimensionar un evento puntual está la integración opcional con
+[`granizo_riesgo`](../granizo_riesgo), que puntúa la exposición sobre imágenes
+GOES cada 10 minutos con corrección de paralaje. Si el paquete no está, la app
+funciona igual con la exposición meteorológica y lo aclara en pantalla. Para
+habilitarlo en un servidor, copiá la carpeta `granizo_riesgo/` dentro del
+repositorio.
+
 **Zonas.** k-medias sobre el compuesto del índice, con filtro de mediana previo
 y reetiquetado por media: la zona 1 es siempre la de menor vigor, en todas las
 corridas. La estabilidad cruza la media plurianual con su variabilidad.
@@ -391,6 +412,11 @@ o más series y tabla alternativa en cada gráfico.
 
 Son parte del método, no defectos a disimular:
 
+- La **detección de daño por tormenta** es una coincidencia temporal, no una
+  prueba. Con dos semanas entre imágenes útiles, cualquier otra cosa pudo pasar
+  en el medio: por eso cada hallazgo trae su nivel de confianza y hay que
+  verificarlo a campo. Y el registro meteorológico es de modelo: dice que hubo
+  granizo *en la zona*, no sobre este lote en particular.
 - Los índices espectrales describen el **canopeo**. No miden rendimiento,
   nutrición ni plagas: orientan el recorrido a campo, no lo reemplazan.
 - La **estimación de rendimiento** es un modelo simple sobre la integral del
@@ -413,7 +439,7 @@ Son parte del método, no defectos a disimular:
 pytest -q
 ```
 
-41 pruebas que cubren geometría, índices, series, fenología, agronomía, zonas,
+51 pruebas que cubren geometría, índices, series, fenología, agronomía, zonas,
 prescripción, comparación histórica, alertas y el pipeline completo. No usan
 red: el generador sintético es determinista por lote.
 

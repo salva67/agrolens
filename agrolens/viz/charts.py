@@ -465,6 +465,51 @@ def prescription_chart(presc: pd.DataFrame, dark: bool = False, height: int = 32
     return fig
 
 
+def storm_timeline(storms: pd.DataFrame, wx: pd.DataFrame, dark: bool = False,
+                   height: int = 420) -> go.Figure:
+    """Ráfagas diarias con los eventos de tormenta marcados, y su severidad debajo."""
+    p = pal(dark)
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.10,
+                        row_heights=[0.6, 0.4],
+                        subplot_titles=("Ráfaga máxima diaria (km/h)",
+                                        "Severidad del evento (0–100)"))
+
+    if wx is not None and not wx.empty and "gust_kmh" in wx.columns:
+        fig.add_trace(go.Scatter(
+            x=wx["date"], y=pd.to_numeric(wx["gust_kmh"], errors="coerce"),
+            mode="lines", name="Ráfaga", line=dict(color=p.s(0), width=1.6),
+            hovertemplate=f"%{{x|{HOVER_DATE}}}<br><b>%{{y:.0f}} km/h</b><extra></extra>",
+        ), row=1, col=1)
+
+    from ..analytics.storms import RAFAGA_DANO, RAFAGA_SEVERA
+
+    for nivel, etiqueta, color in ((RAFAGA_DANO, "daño probable", p.warning),
+                                   (RAFAGA_SEVERA, "daño severo", p.critical)):
+        fig.add_hline(y=nivel, line=dict(color=color, width=1, dash="dot"), row=1, col=1)
+        fig.add_annotation(x=1, xref="paper", y=nivel, yref="y", text=etiqueta, showarrow=False,
+                           font=dict(size=11, color=p.text_secondary), xanchor="right", yshift=8)
+
+    if storms is not None and not storms.empty:
+        granizo = storms[storms["granizo"]]
+        resto = storms[~storms["granizo"]]
+        for sub, nombre, color in ((resto, "Tormenta", p.s(1)),
+                                   (granizo, "Con granizo", p.critical)):
+            if sub.empty:
+                continue
+            fig.add_trace(go.Bar(
+                x=sub["date"], y=sub["severidad"], name=nombre, marker_color=color,
+                customdata=sub["tipo"],
+                hovertemplate=f"%{{x|{HOVER_DATE}}}<br>Severidad <b>%{{y}}</b>"
+                              "<br>%{customdata}<extra></extra>",
+            ), row=2, col=1)
+
+    fig.update_layout(template=template_name(dark), height=height,
+                      title="Tormentas y viento sobre el lote", barmode="stack")
+    fig.update_yaxes(title="km/h", row=1, col=1)
+    fig.update_yaxes(title="severidad", range=[0, 105], row=2, col=1)
+    return fig
+
+
 def coverage_chart(quality: pd.DataFrame, dark: bool = False, height: int = 280) -> go.Figure:
     """Observaciones válidas por mes: la salud del monitoreo satelital."""
     p = pal(dark)

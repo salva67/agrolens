@@ -121,9 +121,17 @@ def gate() -> User:
         return user
 
     if user is not None and m == "oidc":  # autenticado pero fuera de la lista
+        # Quien llega hasta acá se autenticó bien: el problema no es su cuenta,
+        # es que nadie la habilitó. Decirle a quién pedírselo evita el mail de
+        # "no me anda" y que se quede pensando que la app está rota.
+        contacto = _env("AGROLENS_CONTACT", "")
+        a_quien = (f" Escribile a **{contacto}** para pedir acceso."
+                   if contacto else " Pedile acceso a quien te compartió el enlace.")
         _pantalla(
-            f"La cuenta **{user.email}** no está habilitada para esta aplicación.",
-            boton=("Salir", st.logout),
+            f"La cuenta **{user.email}** todavía no está habilitada.{a_quien}\n\n"
+            "Si tenés más de una cuenta de Google, revisá que hayas entrado con la que "
+            "diste para el acceso: podés cerrar sesión y volver a entrar con otra.",
+            boton=("Cerrar sesión y probar con otra cuenta", st.logout),
         )
         st.stop()
 

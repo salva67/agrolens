@@ -34,6 +34,7 @@ PAGES = [
     st.Page("views/1_lotes.py", title="Lotes", icon=":material/map:"),
     st.Page("views/2_vegetacion.py", title="Vegetación", icon=":material/eco:"),
     st.Page("views/3_clima.py", title="Clima y agua", icon=":material/water_drop:"),
+    st.Page("views/8_tormentas.py", title="Tormentas", icon=":material/thunderstorm:"),
     st.Page("views/4_ambientes.py", title="Ambientes", icon=":material/grid_view:"),
     st.Page("views/5_historia.py", title="Historia", icon=":material/history:"),
     st.Page("views/6_informe.py", title="Informe", icon=":material/description:"),
@@ -43,7 +44,7 @@ PAGES = [
 st.navigation(
     {
         "Resumen": PAGES[:2],
-        "Análisis": PAGES[2:6],
-        "Salidas": PAGES[6:],
+        "Análisis": PAGES[2:7],
+        "Salidas": PAGES[7:],
     }
 ).run()

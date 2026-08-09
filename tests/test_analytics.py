@@ -549,6 +549,163 @@ def test_alertas_ordenadas_por_severidad():
 
 
 # --------------------------------------------------------------------------
+# Tormentas
+# --------------------------------------------------------------------------
+def _wx_dias(n=30, inicio=SOWING, **overrides):
+    import pandas as pd
+
+    d = pd.DataFrame({
+        "date": [inicio + timedelta(days=i) for i in range(n)],
+        "tmax": 28.0, "tmin": 15.0, "tmean": 21.0, "precip_mm": 0.0, "et0_mm": 4.0,
+        "rad_mj": 20.0, "wind_kmh": 15.0, "gust_kmh": 25.0, "wmo": 1,
+        "precip_horas": 0.0, "source": "observado",
+    })
+    for k, v in overrides.items():
+        d[k] = v
+    return d
+
+
+def test_dia_calmo_no_genera_evento():
+    from agrolens.analytics import storms
+
+    assert storms.storm_days(_wx_dias()).empty
+
+
+def test_detecta_granizo_por_codigo_wmo():
+    from agrolens.analytics import storms
+
+    wx = _wx_dias()
+    wx.loc[10, ["wmo", "precip_mm", "gust_kmh", "precip_horas"]] = [99, 35.0, 95.0, 2.0]
+    ev = storms.storm_days(wx)
+    assert len(ev) == 1
+    assert bool(ev["granizo"].iloc[0]) is True
+    assert ev["severidad"].iloc[0] > 70, "granizo fuerte con ráfaga debe puntuar alto"
+    assert "granizo" in ev["tipo"].iloc[0].lower()
+
+
+def test_rafaga_fuerte_sola_genera_evento_sin_granizo():
+    from agrolens.analytics import storms
+
+    wx = _wx_dias()
+    wx.loc[5, "gust_kmh"] = 92.0
+    ev = storms.storm_days(wx)
+    assert len(ev) == 1
+    assert bool(ev["granizo"].iloc[0]) is False
+    assert ev["rafaga_kmh"].iloc[0] == 92.0
+
+
+def test_severidad_ordena_los_eventos():
+    from agrolens.analytics import storms
+
+    wx = _wx_dias()
+    wx.loc[3, "gust_kmh"] = 65.0                                     # leve
+    wx.loc[8, ["wmo", "gust_kmh"]] = [96, 85.0]                      # granizo + viento
+    wx.loc[15, ["wmo", "gust_kmh"]] = [99, 110.0]                    # lo peor
+    ev = storms.storm_days(wx).sort_values("date").reset_index(drop=True)
+    assert list(ev["severidad"]) == sorted(ev["severidad"]), "la severidad debe crecer"
+
+
+def _serie(fechas_valores):
+    import pandas as pd
+
+    return pd.DataFrame([
+        {"date": f, "mean": v, "std": 0.05, "p10": v - 0.05, "p90": v + 0.05,
+         "valid_fraction": 1.0, "cloud_scene_pct": 0.0, "scene_id": "X",
+         "median": v, "min": v - 0.1, "max": v + 0.1}
+        for f, v in fechas_valores
+    ])
+
+
+def test_detecta_dano_cuando_la_caida_coincide_con_granizo():
+    from agrolens.analytics import storms
+
+    wx = _wx_dias(n=60)
+    wx.loc[40, ["wmo", "gust_kmh", "precip_mm", "precip_horas"]] = [99, 100.0, 40.0, 2.0]
+    ev = storms.storm_days(wx)
+
+    serie = _serie([(SOWING + timedelta(days=36), 0.78),
+                    (SOWING + timedelta(days=44), 0.55)])
+    dano = storms.detect_damage(serie, ev, get_crop("soja"), SOWING)
+    assert len(dano) == 1
+    fila = dano.iloc[0]
+    assert fila["caida"] == pytest.approx(0.23, abs=0.01)
+    assert bool(fila["granizo"]) is True  # pandas devuelve np.bool_, no bool
+    assert fila["confianza"] == "alta"
+
+
+def test_una_caida_sin_tormenta_no_es_dano():
+    from agrolens.analytics import storms
+
+    ev = storms.storm_days(_wx_dias(n=60))  # sin eventos
+    serie = _serie([(SOWING + timedelta(days=36), 0.78),
+                    (SOWING + timedelta(days=44), 0.55)])
+    assert storms.detect_damage(serie, ev, get_crop("soja"), SOWING).empty
+
+
+def test_la_caida_de_fin_de_ciclo_no_se_reporta_como_dano():
+    """Perder verde cerca de la cosecha es lo esperable: si no se descarta,
+    el informe se llena de falsos positivos todos los años."""
+    from agrolens.analytics import storms
+
+    crop = get_crop("soja")
+    tarde = SOWING + timedelta(days=int(crop.cycle_days * 0.95))
+    wx = _wx_dias(n=200)
+    idx = (tarde - SOWING).days
+    wx.loc[idx, ["wmo", "gust_kmh"]] = [99, 100.0]
+    ev = storms.storm_days(wx)
+
+    serie = _serie([(tarde - timedelta(days=5), 0.60), (tarde + timedelta(days=3), 0.30)])
+    assert storms.detect_damage(serie, ev, crop, SOWING).empty
+
+
+def test_una_ventana_muy_larga_entre_imagenes_baja_la_confianza():
+    from agrolens.analytics import storms
+
+    wx = _wx_dias(n=60)
+    wx.loc[40, ["wmo", "gust_kmh"]] = [95, 62.0]  # tormenta modesta
+    ev = storms.storm_days(wx)
+    serie = _serie([(SOWING + timedelta(days=32), 0.72),
+                    (SOWING + timedelta(days=46), 0.61)])  # 14 días entre imágenes
+    dano = storms.detect_damage(serie, ev, get_crop("soja"), SOWING)
+    assert len(dano) == 1
+    assert dano.iloc[0]["confianza"] in ("baja", "media")
+
+
+def test_periodo_critico_se_marca_correctamente():
+    from agrolens.analytics import storms
+
+    crop = get_crop("maiz")
+    lo, hi = crop.critical_window
+    dentro = SOWING + timedelta(days=int(crop.cycle_days * (lo + hi) / 2))
+    fuera = SOWING + timedelta(days=int(crop.cycle_days * 0.10))
+
+    wx = _wx_dias(n=200)
+    for d in (dentro, fuera):
+        wx.loc[(d - SOWING).days, ["wmo", "gust_kmh"]] = [96, 90.0]
+    ev = storms.critical_window_events(storms.storm_days(wx), crop, SOWING)
+
+    assert bool(ev.loc[ev["date"] == dentro, "en_periodo_critico"].iloc[0]) is True
+    assert bool(ev.loc[ev["date"] == fuera, "en_periodo_critico"].iloc[0]) is False
+
+
+def test_alertas_de_tormenta_se_emiten():
+    from agrolens.analytics import storms
+    from agrolens.analytics.alerts import evaluate
+
+    wx = _wx_dias(n=60)
+    wx.loc[40, ["wmo", "gust_kmh", "precip_mm", "precip_horas"]] = [99, 105.0, 40.0, 2.0]
+    ev = storms.critical_window_events(storms.storm_days(wx), get_crop("soja"), SOWING)
+    serie = _serie([(SOWING + timedelta(days=36), 0.78),
+                    (SOWING + timedelta(days=44), 0.55)])
+    dano = storms.detect_damage(serie, ev, get_crop("soja"), SOWING)
+
+    codigos = {a.code for a in evaluate(crop=get_crop("soja"), storms=ev, damage=dano)}
+    assert "DANO_TORMENTA" in codigos
+    assert "GRANIZO" in codigos
+    assert "VIENTO" in codigos
+
+
+# --------------------------------------------------------------------------
 # Pipeline completo en modo demostración
 # --------------------------------------------------------------------------
 def test_pipeline_demo_de_punta_a_punta():

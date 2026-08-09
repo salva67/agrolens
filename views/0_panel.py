@@ -11,6 +11,7 @@ from agrolens.ui import components as ui
 from agrolens.viz import charts
 
 ui.init_state()
+ui.ephemeral_warning()
 ui.hero("Panel", "Estado del lote en una pantalla")
 
 lotes = storage.list_lotes(ui.current_user().email)

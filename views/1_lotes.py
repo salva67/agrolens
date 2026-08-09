@@ -14,6 +14,7 @@ from agrolens.ui import components as ui
 from agrolens.viz import maps
 
 ui.init_state()
+ui.ephemeral_warning()
 ui.hero("Lotes", "Dibujá, importá y administrá los lotes del establecimiento")
 
 me = ui.current_user().email

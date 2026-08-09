@@ -54,6 +54,20 @@ def ensure_dirs() -> None:
 ensure_dirs()
 
 
+def ephemeral_storage() -> str | None:
+    """Detecta si el disco se borra al reiniciar (hosting sin volumen).
+
+    Streamlit Community Cloud clona el repo en /mount/src y arma el contenedor
+    de cero en cada arranque: todo lo que la app escriba se pierde. Conviene
+    decirlo en pantalla y no que el usuario lo descubra con la lista vacía.
+    """
+    if Path("/mount/src").exists():
+        return "Streamlit Community Cloud"
+    if os.getenv("K_SERVICE") and not os.getenv("AGROLENS_DATA_DIR"):
+        return "Cloud Run"  # sin volumen montado
+    return None
+
+
 def in_synced_folder() -> str | None:
     """Devuelve el servicio de sincronización si los datos están dentro de uno."""
     ruta = str(DATA_DIR).lower()

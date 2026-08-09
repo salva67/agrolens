@@ -35,6 +35,8 @@ def evaluate(
     history: dict | None = None,
     zones: dict | None = None,
     gaps: dict | None = None,
+    storms: pd.DataFrame | None = None,
+    damage: pd.DataFrame | None = None,
     sowing: date | None = None,
     index_key: str = "NDVI",
 ) -> list[Alert]:
@@ -44,12 +46,14 @@ def evaluate(
         _rule_trend, _rule_uniformity, _rule_history, _rule_water_stress,
         _rule_dry_spell, _rule_thermal, _rule_waterlogging, _rule_zones,
         _rule_coverage, _rule_forecast, _rule_stage,
+        _rule_storm_damage, _rule_storm_exposure, _rule_storm_forecast,
     ):
         try:
             out.extend(rule(
                 crop=crop, series=series, curve=curve, trend=trend, weather=weather,
                 balance=balance, stress=stress, thermal=thermal, spells=spells,
                 history=history, zones=zones, gaps=gaps, sowing=sowing, index_key=index_key,
+                storms=storms, damage=damage,
             ))
         except Exception:  # una regla rota no puede tumbar el informe entero
             continue
@@ -343,6 +347,99 @@ def _rule_stage(*, balance, crop, sowing, **_) -> list[Alert]:
             value=gdd,
         )]
     return []
+
+
+# --------------------------------------------------------------------------
+# Reglas de tormenta
+# --------------------------------------------------------------------------
+def _rule_storm_damage(*, damage, index_key, **_) -> list[Alert]:
+    """Lo más accionable de todo el informe: el satélite vio caer el lote
+    justo cuando pasó una tormenta."""
+    if damage is None or damage.empty:
+        return []
+    out = []
+    orden = {"alta": 0, "media": 1, "baja": 2}
+    for _, d in damage.sort_values("confianza", key=lambda s: s.map(orden)).head(3).iterrows():
+        sev = {"alta": "critical", "media": "serious"}.get(d["confianza"], "warning")
+        que = "granizo" if d["granizo"] else "tormenta"
+        out.append(Alert(
+            code="DANO_TORMENTA", severity=sev, source="satelital",
+            title=f"Posible daño por {que} del {pd.Timestamp(d['tormenta']):%d/%m}",
+            detail=(f"El {index_key} cayó {d['caida']:.2f} entre el "
+                    f"{pd.Timestamp(d['fecha_antes']):%d/%m} y el "
+                    f"{pd.Timestamp(d['fecha_despues']):%d/%m} "
+                    f"({d['valor_antes']:.2f} → {d['valor_despues']:.2f}, {d['dias']} días). "
+                    f"En esa ventana se registró: {d['detalle']}. "
+                    f"Confianza de la atribución: {d['confianza']}."),
+            recommendation=("Recorrer el lote y documentar con fotos fechadas. Si hay seguro, "
+                            "avisar ahora: la fecha del evento y la caída del índice son "
+                            "respaldo objetivo del reclamo."),
+            value=float(d["caida"]),
+        ))
+    return out
+
+
+def _rule_storm_exposure(*, storms, crop, **_) -> list[Alert]:
+    if storms is None or storms.empty:
+        return []
+    obs = storms[storms["source"] != "pronóstico"] if "source" in storms else storms
+    if obs.empty:
+        return []
+
+    out = []
+    granizo = obs[obs["granizo"]]
+    if not granizo.empty:
+        criticos = granizo[granizo.get("en_periodo_critico", False)] \
+            if "en_periodo_critico" in granizo else granizo.iloc[0:0]
+        ult = granizo.iloc[-1]
+        out.append(Alert(
+            code="GRANIZO", severity="serious" if not criticos.empty else "warning",
+            source="clima",
+            title=f"{len(granizo)} día(s) con granizo declarado sobre el lote",
+            detail=(f"El último, el {pd.Timestamp(ult['date']):%d/%m/%Y} ({ult['tipo']})."
+                    + (f" {len(criticos)} cayeron en el período crítico de "
+                       f"{crop.label.lower()}." if not criticos.empty else "")),
+            recommendation=("Verificar a campo. El registro meteorológico indica granizo en la "
+                            "zona, no necesariamente sobre este lote: para dimensionarlo, "
+                            "usar el análisis GOES de esa fecha."),
+            value=float(len(granizo)),
+        ))
+
+    rafagas = pd.to_numeric(obs["rafaga_kmh"], errors="coerce").dropna()
+    if not rafagas.empty and rafagas.max() >= 80:
+        peor = obs.loc[rafagas.idxmax()]
+        out.append(Alert(
+            code="VIENTO", severity="serious" if rafagas.max() >= 100 else "warning",
+            source="clima",
+            title=f"Ráfagas de hasta {rafagas.max():.0f} km/h",
+            detail=(f"La máxima se registró el {pd.Timestamp(peor['date']):%d/%m/%Y}. "
+                    f"{int((rafagas >= 80).sum())} día(s) superaron los 80 km/h."),
+            recommendation=("Con el cultivo en llenado o cerca de cosecha, revisar vuelco y "
+                            "desgrane: son pérdidas que no se ven desde el satélite hasta "
+                            "que el lote ya se secó."),
+            value=float(rafagas.max()),
+        ))
+    return out
+
+
+def _rule_storm_forecast(*, storms, **_) -> list[Alert]:
+    if storms is None or storms.empty or "source" not in storms:
+        return []
+    fc = storms[storms["source"] == "pronóstico"]
+    if fc.empty:
+        return []
+    peor = fc.loc[fc["severidad"].idxmax()]
+    granizo = bool(fc["granizo"].any())
+    if peor["severidad"] < 30 and not granizo:
+        return []
+    return [Alert(
+        code="PRON_TORMENTA", severity="warning" if granizo else "info", source="clima",
+        title=f"Tormenta pronosticada para el {pd.Timestamp(peor['date']):%d/%m}",
+        detail=f"{peor['tipo']}." + (" El modelo anticipa granizo." if granizo else ""),
+        recommendation=("Adelantar labores que requieran piso firme y, si hay cultivo en "
+                        "condiciones de cosecha, evaluar entrar antes del evento."),
+        value=float(peor["severidad"]),
+    )]
 
 
 def to_dataframe(alerts: list[Alert]) -> pd.DataFrame:

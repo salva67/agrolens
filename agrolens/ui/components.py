@@ -94,7 +94,41 @@ def hero(title: str, subtitle: str = "") -> None:
 
 
 def note(text: str) -> None:
-    st.markdown(f'<div class="al-note">{text}</div>', unsafe_allow_html=True)
+    """Nota al pie de un título. Acepta **negrita** y `código` de markdown.
+
+    El contenido va dentro de un div, así que Streamlit no procesa el markdown:
+    lo traducimos a HTML acá o el asterisco se ve tal cual en pantalla.
+    """
+    import html
+    import re
+
+    seguro = html.escape(text)
+    seguro = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", seguro)
+    seguro = re.sub(r"`(.+?)`", r"<code>\1</code>", seguro)
+    st.markdown(f'<div class="al-note">{seguro}</div>', unsafe_allow_html=True)
+
+
+def ephemeral_warning(once_per_session: bool = True) -> None:
+    """Avisa que los lotes no sobreviven a un reinicio, si el disco es efímero.
+
+    Se muestra una vez por sesión para no volverse ruido: quien ya lo leyó no
+    necesita verlo en cada página.
+    """
+    from ..config import ephemeral_storage
+
+    hosting = ephemeral_storage()
+    if not hosting:
+        return
+    if once_per_session and st.session_state.get("_efimero_avisado"):
+        return
+    st.session_state["_efimero_avisado"] = True
+    st.warning(
+        f"**Los lotes que cargues no quedan guardados de forma permanente.** Esta versión "
+        f"corre en {hosting}, donde el almacenamiento se borra cada vez que la aplicación "
+        f"se reinicia o se actualiza. Descargá tu copia desde **Ajustes → Exportar todos "
+        f"los lotes** y volvé a subirla cuando haga falta.",
+        icon="💾",
+    )
 
 
 # --------------------------------------------------------------------------

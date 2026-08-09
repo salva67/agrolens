@@ -18,7 +18,10 @@ from typing import Any, Callable
 
 import pandas as pd
 
-from .analytics import agronomy, alerts as alerts_mod, anomaly, phenology, timeseries, zones as zones_mod
+from .analytics import (
+    agronomy, alerts as alerts_mod, anomaly, phenology, storms as storms_mod, timeseries,
+    zones as zones_mod,
+)
 from .config import SETTINGS
 from .crops import Crop, get_crop
 from .geo import area_ha, centroid_latlon
@@ -53,6 +56,11 @@ class AnalysisResult:
     eventos_termicos: pd.DataFrame = field(default_factory=pd.DataFrame)
     piso: pd.DataFrame = field(default_factory=pd.DataFrame)
     resumen_clima: dict = field(default_factory=dict)
+
+    # Tormentas
+    tormentas: pd.DataFrame = field(default_factory=pd.DataFrame)
+    dano_tormenta: pd.DataFrame = field(default_factory=pd.DataFrame)
+    resumen_tormentas: dict = field(default_factory=dict)
 
     # Histórico
     historia: pd.DataFrame = field(default_factory=pd.DataFrame)
@@ -215,6 +223,19 @@ def run(
         except Exception as exc:
             res.avisos.append(f"No se pudo completar el balance agronómico: {exc}")
 
+        # ---- Tormentas: exposición y daño observado ---------------------
+        step(0.58, "Buscando tormentas y daño asociado…")
+        try:
+            res.tormentas = storms_mod.storm_days(res.clima)
+            res.tormentas = storms_mod.critical_window_events(
+                res.tormentas, crop, lote.sowing_date)
+            res.resumen_tormentas = storms_mod.exposure_summary(res.tormentas, res.clima)
+            if not res.series.empty:
+                res.dano_tormenta = storms_mod.detect_damage(
+                    res.series, res.tormentas, crop, lote.sowing_date)
+        except Exception as exc:
+            res.avisos.append(f"No se pudo analizar la exposición a tormentas: {exc}")
+
     # ---- 3. Ráster y zonas ---------------------------------------------
     if include_raster:
         step(0.65, "Descargando el ráster del lote…")
@@ -262,7 +283,8 @@ def run(
         crop=crop, series=res.series, curve=res.curve, trend=res.trend, weather=res.clima,
         balance=res.balance, stress=res.estres, thermal=res.eventos_termicos,
         spells=res.rachas_secas, history=res.resumen_historia, zones=res.zonas,
-        gaps=res.gaps, sowing=lote.sowing_date, index_key=config.index,
+        gaps=res.gaps, storms=res.tormentas, damage=res.dano_tormenta,
+        sowing=lote.sowing_date, index_key=config.index,
     )
     step(1.0, "Listo")
     return res

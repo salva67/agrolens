@@ -29,8 +29,16 @@ DAILY_VARS = [
     "precipitation_sum",
     "et0_fao_evapotranspiration",
     "shortwave_radiation_sum",
-    "windspeed_10m_max",
+    "wind_speed_10m_max",
+    # Tormentas: la ráfaga es la que voltea un cultivo, no el viento medio, y el
+    # código WMO distingue tormenta (95) de tormenta con granizo (96 y 99).
+    "wind_gusts_10m_max",
+    "weather_code",
+    "precipitation_hours",
 ]
+
+# Sólo disponibles en el pronóstico; en el archivo vuelven vacías
+FORECAST_ONLY_VARS = ["precipitation_probability_max", "cape_max"]
 
 RENAME = {
     "time": "date",
@@ -40,11 +48,16 @@ RENAME = {
     "precipitation_sum": "precip_mm",
     "et0_fao_evapotranspiration": "et0_mm",
     "shortwave_radiation_sum": "rad_mj",
-    "windspeed_10m_max": "wind_kmh",
+    "wind_speed_10m_max": "wind_kmh",
+    "wind_gusts_10m_max": "gust_kmh",
+    "weather_code": "wmo",
+    "precipitation_hours": "precip_horas",
     "precipitation_probability_max": "precip_prob",
+    "cape_max": "cape",
 }
 
-COLUMNS = ["date", "tmax", "tmin", "tmean", "precip_mm", "et0_mm", "rad_mj", "wind_kmh", "source"]
+COLUMNS = ["date", "tmax", "tmin", "tmean", "precip_mm", "et0_mm", "rad_mj", "wind_kmh",
+           "gust_kmh", "wmo", "precip_horas", "source"]
 
 
 class WeatherError(RuntimeError):
@@ -103,7 +116,7 @@ def forecast(lat: float, lon: float, days: int | None = None) -> pd.DataFrame:
     days = days or SETTINGS.forecast_days
     payload = _get(SETTINGS.weather_forecast_url, {
         "latitude": round(lat, 4), "longitude": round(lon, 4),
-        "daily": ",".join(DAILY_VARS + ["precipitation_probability_max"]),
+        "daily": ",".join(DAILY_VARS + FORECAST_ONLY_VARS),
         "forecast_days": min(16, days), "timezone": "auto",
     })
     return _to_frame(payload, "pronóstico")
@@ -182,6 +195,11 @@ def timeline(lat: float, lon: float, start: date, end: date,
     for col in ("tmax", "tmin", "tmean", "et0_mm", "rad_mj"):
         df[col] = pd.to_numeric(df[col], errors="coerce").interpolate(limit=3)
     df["precip_mm"] = pd.to_numeric(df["precip_mm"], errors="coerce").fillna(0.0)
+    # Las variables de tormenta NO se interpolan: un día sin dato de ráfaga no
+    # es un día sin ráfaga, y un código WMO inventado sería un evento inventado.
+    for col in ("gust_kmh", "wmo", "precip_horas"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
 
 

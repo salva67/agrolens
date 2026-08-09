@@ -1,14 +1,20 @@
 # AgroLens — dependencias
+# Instalación:  pip install -r requirements.txt
 
 # Interfaz
 streamlit>=1.40
 streamlit-folium>=0.21
 folium>=0.16
 branca>=0.7
+# st.login() con Google. Authlib declara httpx como opcional, pero su
+# integración con Starlette —la que usa Streamlit— lo importa igual: sin httpx
+# el login falla recién al hacer clic, no al arrancar.
 Authlib>=1.3.2
 httpx>=0.27
 
 # Datos y análisis
+# El tope de pandas es deliberado: pandas 3 cambia comportamientos de indexado
+# y de tipos que la app no tiene probados.
 pandas>=2.0,<3
 numpy>=1.24
 scipy>=1.10
@@ -16,6 +22,9 @@ scikit-learn>=1.3
 requests>=2.31
 
 # Geoespacial
+# geopandas 1.x lee y escribe con pyogrio, que trae GDAL dentro del wheel.
+# NO agregar fiona: no tiene wheel para las versiones nuevas de Python y
+# obliga a compilar GDAL desde el código fuente, lo que rompe el deploy.
 geopandas>=1.0
 shapely>=2.0
 pyproj>=3.5
@@ -25,8 +34,8 @@ rasterio>=1.3
 earthengine-api>=0.1.390
 
 # Gráficos y salidas
-plotly>=5.20
-matplotlib>=3.7
-reportlab>=4.0
-xlsxwriter>=3.1
+plotly>=5.20            # gráficos interactivos en pantalla
+matplotlib>=3.7         # gráficos del PDF (no depende de binarios externos)
+reportlab>=4.0          # informe PDF
+xlsxwriter>=3.1         # libro de Excel
 openpyxl>=3.1
